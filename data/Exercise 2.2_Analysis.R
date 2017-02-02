@@ -1,0 +1,79 @@
+#Read the dataset from the local folder
+setwd("/Users/obruck/Desktop/Open data course/IODS-project/data/")
+learning2014 <- read.csv("learning2014.csv", header=TRUE)
+str(learning2014)
+dim(learning2014)
+#The "learning2014" dataset constitutes of 166 observations and 8 variables.
+#The variables (gender, Age, Attitude, Deep, Stra, Surf and Points) describe
+#the results of a query study made as a collaboration international project
+#with teachers.
+#Gender = 1 corresponds to male and Gender = 2 to female students.
+#Age = the age of the student
+#Attitude = Global attitude toward statistics, computed as a sum of numerous variables
+#Deep = Deep approach, computed as a sum of numerous variables
+#Stra = Surface approach, computed as a sum of numerous variables
+#Surf = Surface approach, computed as a sum of numerous variables
+#Points = Max points of social studies
+
+#Show a graphical overview of the data and show summaries of the variables in the data
+summary(learning2014)
+pairs(learning2014[-1], col=learning2014$gender)
+#There are 110 female and 56 male students. The median age is 22 years and range [17-55].
+#Students got a median of 44 points [19-59] in the deep approach (Deep), 25.50 [10-40] in
+#the strategic approach (Stra), 34 points [19-52] in the surface approach (Surf). Their
+#max points were 23 [7-33] as a median (Points).
+#The data is visualised according to gender (males as black dots and females as red dots)
+#on multiple bivariable correlation scatter plots.
+
+#The data can also be visualised using the "GGally" and "ggplot2" packages
+install.packages("GGally")
+library("GGally")
+library("ggplot2")
+p <- ggpairs(learning2014[-1], mapping = aes(col = gender, alpha = 0.3), lower = list(combo = wrap("facethist", bins = 20)))
+p
+#Now we can  see that male students have a higher score in attitude questions and female
+#students in strategic questions. We can also see that Variables Points and Attitude have
+#the highest (cor: 0.43) and Surf and Deep second highest correlation factor (cor: 0.32).
+
+
+#Choose three variables as explanatory variables and fit a regression model where exam points
+#is the target (dependent) variable. Show a summary of the fitted model and comment and interpret
+#the results. Explain and interpret the statistical test related to the model parameters.
+#If an explanatory variable in your model does not have a statistically significant relationship
+#with the target variable, remove the variable from the model and fit the model again without it.
+#Using a summary of your fitted model, explain the relationship between the chosen explanatory
+#variables and the target variable (interpret the model parameters). Explain and interpret the
+#multiple R squared of the model.
+
+#Regression model
+points_regression <- lm(Points ~ Attitude + Stra + Surf, data = learning2014)
+summary(points_regression)
+points_regression <- lm(Points ~ Attitude + Stra, data = learning2014)
+summary(points_regression)
+points_regression <- lm(Points ~ Attitude, data = learning2014)
+summary(points_regression)
+
+#Interpretation of results
+#The max points student achieve is tested with a multivariate linear regression model using
+#Attitude, Stra and Surf as independent variables. The model tries to describe any linear correlation
+#between the independent and dependent variables. In the first model with all three
+#variables, Attitude explains the Points with a coefficient estimate of 0.34 (p<0.0001).
+#Other variables Stra and Surf do not explain Points with a statistical significance. Thus,
+#first Surf is removed and the model is tested again. Attitude is still the only relevant
+#variable and, thus, Stra is removed and the model is run with Attitude alone (coefficient 0.35, p<0.0001).
+#The adjusted R-squared score is 0.19 meaning that using this model, Attitude explains 19% of the total
+#variance of the dependent variable Points.
+
+#Produce the following diagnostic plots: Residuals vs Fitted values, Normal QQ-plot and Residuals vs Leverage.
+#Explain the assumptions of the model and interpret the validity of those assumptions based on the diagnostic plots.
+plot(points_regression, which = c(1,2,5))
+#Residuals of the linear regression model describe the validity of the model. Residuals should be normally distributed,
+#they should not correlate with each others, have a constant varaiance and their size should not depend on the size of
+#the independent variable.
+#The QQ-plot describes the distribution of the residuals. Our model is normally divided as the measurements are set on
+#straight increasing line.
+#The Residuals vs Fitted plot describes how the residuals depend on the explanatory variable. According to the plot,
+#the resudials are resonably evenly distributed on both sides of the residual level = 0 line and, thus, do not depend
+#on the size of the explanatory variable.
+#The Residuals vs Leverage plot can help identify, which observations have an unusually high impact on the model.
+#According to the plot, all measurements are divided between [0,0.05] and thus none have an unusual impact on the model.
