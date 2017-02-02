@@ -1,5 +1,7 @@
 
-# About the project
+# Exercise 1  
+
+## About the project
 
 This course will be an introduction to R and Github.
 
