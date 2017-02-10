@@ -1,11 +1,7 @@
 
 # Exercise 1  
 
-<<<<<<< HEAD
-## About the project
-
-=======
->>>>>>> master
+## About the project  
 This course will be an introduction to R and Github.
 
 Here is the link to my IODS page  
