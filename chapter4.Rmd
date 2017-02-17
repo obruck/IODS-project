@@ -1,0 +1,199 @@
+---
+title: "Data analysis exercise (Exercise 3.2)"
+author: "Oscar Brück"
+date: "09.02.2017"
+output:
+  html_document:
+    theme: journal
+    toc: true
+    toc_depth: 2
+    fig_caption: true
+    fig_width: 6
+    fig_height: 4
+    code_folding: hide
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Exercise 4 Data analysis  
+##Load the data
+```{r echo = TRUE}
+#setwd("/Users/obruck/Desktop/Open data course/IODS-project/data/")
+library(MASS)
+data("Boston")
+```
+
+##Explore the dataset
+```{r echo = TRUE}
+str(Boston)
+dim(Boston)
+```
+The Boston data frame has 506 rows and 14 columns. The data frame contains the following variables: crim, zn, indus, chas, nox, rm, age, dis, rad, tax, ptratio, black, lstat and medv.
+
+##Visualize the correlation matrix
+```{r echo = TRUE}
+pairs(Boston)
+```  
+
+###As the image is not very visual, let's develop that with the corrplot package
+```{r echo = TRUE}
+library(dplyr)
+cor_matrix<-cor(Boston) 
+cor_matrix
+cor_matrix %>% round(2)
+#install.packages("corrplot")
+library(corrplot)
+corrplot(cor_matrix %>% round(2), method="circle")
+corrplot(cor_matrix %>% round(2), method="circle", type="upper", cl.pos="b", tl.pos="d", tl.cex=0.6)
+summary(Boston)
+```  
+
+There seem to be a strong negative correlation between variables age (proportion of owner-occupied units built prior to 1940) and dis (weighted mean of distances to five Boston employment centres),  nox (nitrogen oxides concentration) and dis, indus (proportion of non-retail business acres per town) and dis and lstat (lower status of the population) and medv (median value of owner-occupied homes in \$1000s). On the other hand, there is strong positive correalation between indus and nox, indus and tax (full-value property-tax rate per \$10,000), nox and age, nox and tax, rm (average number of rooms per dwelling) and medv and rad (index of accessibility to radial highways) and tax.  
+
+By looking at the difference between the medians and means and at their value respective to the min. and max. values, it seems that variables crim, zn, age, rad, tax, indus and black would be distributed non-parametrically and others perhaps parametrically. However, to make such conclusions, one should first run a test for normality (for instance Kolmogorov-Smirnov).  
+
+##Standardize the dataset
+```{r echo = TRUE}
+boston_scaled <- scale(Boston)
+summary(boston_scaled)
+```  
+
+Scaling reduces the mean of each of the values. Thus, after scaling, the variables have all 0 as a mean and it is easier to inspect the distribution. The closer the median is to 0, the more parametrical the variable. Scaling does not transform the data such as logarithmic trasformation.  
+
+###Change the object to data frame and create a categorical variable of the crime rate
+```{r echo = TRUE}
+class(boston_scaled)
+boston_scaled <- as.data.frame(boston_scaled)
+scaled_crim <- boston_scaled$crim
+summary(scaled_crim)
+```  
+
+###Create a quantile vector of crim
+```{r echo = TRUE}
+bins <- quantile(scaled_crim)
+bins
+```  
+
+###Create a categorical variable 'crime'
+```{r echo = TRUE}
+crime <- cut(scaled_crim, breaks = bins, include.lowest = TRUE, labels = c("low", "med_low", "med_high", "high"))
+
+#remove original crim from the dataset
+table(crime)
+boston_scaled <- dplyr::select(boston_scaled, -crim)
+boston_scaled <- data.frame(boston_scaled, crime)
+```  
+
+###Choose randomly 80% of the rows 
+```{r echo = TRUE}
+n <- nrow(boston_scaled)
+ind <- sample(n,  size = n * 0.8)
+```  
+
+###Create train and test sets
+```{r echo = TRUE}
+train <- boston_scaled[ind,]
+test <- boston_scaled[-ind,]
+```  
+
+##Linear discriminant analysis
+```{r echo = TRUE}
+#install.packages("lda")
+library(lda)
+lda.fit <- lda(crime~., data = train)
+lda.fit
+```  
+
+###The function for lda biplot arrows
+```{r echo = TRUE}
+lda.arrows <- function(x, myscale = 1, arrow_heads = 0.1, color = "red", tex = 0.75, choices = c(1,2)){
+  heads <- coef(x)
+  arrows(x0 = 0, y0 = 0, 
+         x1 = myscale * heads[,choices[1]], 
+         y1 = myscale * heads[,choices[2]], col=color, length = arrow_heads)
+  text(myscale * heads[,choices], labels = row.names(heads), 
+       cex = tex, col=color, pos=3)
+}
+``` 
+
+###Target classes as numeric
+```{r echo = TRUE}
+classes <- as.numeric(train$crime)
+``` 
+
+###Plot the lda results
+```{r echo = TRUE}
+plot(lda.fit, dimen = 2)
+plot(lda.fit, dimen = 2, col=classes, pch=classes)
+lda.arrows(lda.fit, myscale = 1)
+``` 
+
+###Save the correct classes from test data and remove the crime variable
+```{r echo = TRUE}
+correct_classes <- test$crime
+test <- dplyr::select(test, -crime)
+``` 
+
+##Predict the classes with the LDA model on the test data and cross tabulate the results with the crime categories from the test set
+```{r echo = TRUE}
+lda.pred <- predict(lda.fit, newdata = test)
+table(correct = correct_classes, predicted = lda.pred$class)
+``` 
+
+According to the results, the model predicts well the true values of the categorical crime variable. Most of the errors are related to the med_low group where the specificity is the lowest.  
+
+###Calculate the distances between the observations and run k-means algorithm on the dataset
+```{r echo = TRUE}
+#data('Boston')
+#boston_scaled <- scale(Boston)
+dist_eu <- dist(boston_scaled)
+summary(dist_eu)
+dist_man <- dist(boston_scaled, method = "manhattan")
+``` 
+
+###K-means algorithm
+####Determine and visualize the optimal number of clusters by first assigning a max of 10 clusters and then calculating the total within sum of squares
+```{r echo = TRUE}
+k_max <- 10
+twcss <- sapply(1:k_max, function(k){kmeans(dist_eu, k)$tot.withinss})
+plot(1:k_max, twcss, type='b')
+```  
+
+####The optimal cluster number is 2. K-means cluster analysis
+```{r echo = TRUE}
+km <-kmeans(dist_eu, centers = 2)
+pairs(Boston, col = km$cluster)
+```  
+
+##Bonus: Run k-means with 3 centers and perform LDA using the clusters as target classes
+```{r echo = TRUE}
+km <-kmeans(dist_eu, centers = 3)
+lda.fit <- lda(km$cluster~., data = boston_scaled)
+lda.fit
+plot(lda.fit, dimen = 2)
+plot(lda.fit, dimen = 2, col=classes, pch=classes)
+lda.arrows(lda.fit, myscale = 1)
+```  
+
+Using 3 clusters for K-means analysis, the most influencial linear separators are nox and chas. This means that if the data would be divided in 3 classes, variables nox and chas would explain most of the dimentional difference and would thus be the best variables to predict possible new observations.
+
+##Super-Bonus: Create a matrix product, which is a projection of the data points
+```{r echo = TRUE}
+model_predictors <- dplyr::select(train, -crime)
+###Check the dimensions
+dim(model_predictors)
+dim(lda.fit$scaling)
+###Matrix multiplication
+#matrix_product <- as.matrix(model_predictors) %*% lda.fit$scaling
+#matrix_product <- as.data.frame(matrix_product)
+#install.packages("plotly")
+#library("plotly")
+###Create a 3D plot (Cool!) of the columns of the matrix product
+#plot_ly(x = matrix_product$LD1, y = matrix_product$LD2, z = matrix_product$LD3, type= 'scatter3d', mode='markers', color=train$crime)
+#plot_ly(x = matrix_product$LD1, y = matrix_product$LD2, z = matrix_product$LD3, type= 'scatter3d', mode='markers', color=km$center)
+``` 
+
+The same results as above is visualised in 3D using the variable crime in the first plot and the number of clusters selected in the second to separate observations with colors. For some reason, the visualisation does not work after knitting the file.
