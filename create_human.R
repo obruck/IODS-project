@@ -6,9 +6,9 @@ gii <- read.csv("http://s3.amazonaws.com/assets.datacamp.com/production/course_2
 str(hd)
 str(gii)
 dim(hd)
-dim(hd)
+dim(gii)
 summary(hd)
-summary(hd)
+summary(gii)
 
 #Rename columns
 colnames(hd)[3] <- "HDI"
