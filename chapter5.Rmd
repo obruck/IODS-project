@@ -1,0 +1,118 @@
+---
+title: "Data analysis exercise (Exercise 5.2)"
+author: "Oscar Brück"
+date: "24.02.2017"
+output:
+  html_document:
+    theme: journal
+    toc: true
+    toc_depth: 2
+    fig_caption: true
+    fig_width: 6
+    fig_height: 4
+    code_folding: hide
+---
+
+#Exercise 4 Data analysis  
+##Load the data  
+```{r message = FALSE}
+setwd("/Users/obruck/Desktop/Open data course/IODS-project/data/")
+human2 <- read.csv("human2.csv")
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(stringr)
+colnames(human2)[1] <- "Country"
+human2 <- human2[ ,2:9]
+#human2 <- select(human2, -Country)
+dim(human2)
+str(human2)
+```
+There are 9 variables and 155 observations.
+
+The original data is from http://hdr.undp.org/en/content/human-development-index-hdi and has been retrieved, modified and analyzed by Tuomo Nieminen. The data combines several indicators from most countries in the world.  
+"Country" = Country name  
+Health and knowledge  
+"GNI" = Gross National Income per capita  
+"Life.Exp" = Life expectancy at birth  
+"Edu.Exp" = Expected years of schooling   
+"Mat.Mor" = Maternal mortality ratio  
+"Ado.Birth" = Adolescent birth rate  
+Empowerment  
+"Parli.F" = Percetange of female representatives in parliament  
+"Edu2.F" = Proportion of females with at least secondary education  
+"Edu2.M" = Proportion of males with at least secondary education  
+"Labo.F" = Proportion of females in the labour force  
+"Labo.M" " Proportion of males in the labour force  
+"Edu2.FM" = Edu2.F / Edu2.M  
+"Labo.FM" = Labo2.F / Labo2.M  
+
+##Show an overview of the data  
+```{r message = FALSE}
+human2 <- mutate(human2, GNI=str_replace(human2$GNI, pattern=",", replace ="") %>% as.numeric())
+pairs(human2)
+summary(human2)
+library(GGally)
+library(corrplot)
+#ggpairs(data=human2)
+cor(human2) %>% corrplot()
+```
+
+Variables "Edu2.FM", "Labo.FM", "Life.Exp", "Edu.Exp" and "Parli.F" seem to be parametrical as their mean and median are close to each others. On the other hand, "GNI", "Mat.Mor" and "Ado.Birth" have quite differing median and mean values indicating the distribution is not parametrical.  
+Variables "Life.Exp" and "Edu.Exp", "Mat.Mor" and "Ado.Birth" would have a positive correlation. Parameters "Life.Exp" and "Mat.Mor", "Edu.Exp" and "Mat.Mor", "Life.Exp" and "Ado.Birth", and "Edu.Exp" and "Ado.Birth" have negative correlation.  
+
+##Perform principal component analysis (PCA) on the not standardized human data  
+```{r warning = FALSE}
+pca_human <- prcomp(human2)
+biplot(pca_human, choices = 1:2, cex=c(0.8,1), col=c("grey40", "deeppink2"))
+```
+
+##Standardize the variables in the human data and repeat the PCA analysis  
+```{r echo = TRUE}
+human_scaled <- scale(human2)
+pca_human <- prcomp(human_scaled)
+s <- summary(pca_human)
+s
+#Rounded percetanges of variance captured by each PC
+pca_pr <- round(1*s$importance[2, ], digits = 5)
+#Print out the percentages of variance
+round(pca_pr*100, digits=1)
+pca_pr <- round(pca_pr*100, digits=1)
+#Create object pc_lab to be used as axis labels
+pc_lab <- paste0(names(pca_pr), " (", pca_pr, "%)")
+paste0(names(pca_pr), " (", pca_pr, "%)")
+biplot(pca_human, choices = 1:2, cex=c(0.8,1), col=c("grey40", "deeppink2"), xlab = pc_lab[1], ylab = pc_lab[2])
+```
+The results differ. The PCA plot of the unscaled data suggest that there is only one variable that would explain the variance of the two principal component and it is unilateral to PC1. After scaling, all variables are displayed clearly in the plot and pointing each in different directions and with an almost equal amplitude. The scaling reduces the difference between values of different variables and thus makes the variables comparable.  
+
+Adolescent birth rate and maternal mortality points to an increasing PC1 and Life expectancy, education expectancy and the proportion of females to males with at least secondary education points to the opposing direction. This is understandable as the opposing arrows describe phenomena of developing and developed countries, respectively. Perpendicular to these variables are the percentage of female representatives in parliament and proportion of females to male in the labour force, which are pointing to an increasing principal component PC2.  
+
+##Give your personal interpretations  
+PC1 describes a dimension of health and knowledge. Variables linear to PC1 either increases wellbeing or education, which have a high correlation together as was described earlier in the correlation matrix. PC2 describes female empowerment and is independent from the themes of PC1. The correlation plot sustain this notion as variables linear with PC2 correlate positively with each others but negatively with variables linear with PC1.  
+
+##Load the tea dataset, explore the data and perform Multiple Correspondence Analysis (MCA)
+###Load the data  
+```{r message = FALSE}
+library(FactoMineR)
+data(tea)
+str(tea)
+dim(tea)
+```
+###Select a small dataset
+```{r echo = TRUE}
+tea_time <- data.frame(tea$Tea, tea$How, tea$how, tea$sugar, tea$where, tea$lunch)
+summary(tea_time)
+str(tea_time)
+```
+###Visualize the dataset
+```{r echo = TRUE}
+gather(tea_time) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") +  geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+```
+###Run MCA  
+```{r echo = TRUE}
+mca <- MCA(tea_time, graph = FALSE)
+summary(mca)
+plot(mca, invisible=c("ind"), habillage="quali")
+```
+
+The variables are distributed to a biplot of two principal dimensions explaining 15.3% and 14.2% of the total variance, respectively.
