@@ -1,4 +1,7 @@
 #This course will be an introduction to R and Github  
+##[Oscar Brück](oscar.bruck@helsinki.fi) 06.03.2017
 
 Here is the link to my IODS page  
 [link](https://obruck.github.io/IODS-project/)
+
+There you will find multiple scripts related to linear and logistic regression, correlation plots, data wrangling techniques, LDA plots, K-means analysis, PCA plots, MCA plots and more. The scripts have been written along the Open Data Course 2017.
