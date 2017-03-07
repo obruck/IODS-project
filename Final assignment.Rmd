@@ -1,0 +1,164 @@
+---
+title: "Final Assignment"
+author: "Oscar Brück"
+email address: oscar.bruck@helsinki.fi
+date: "06.03.2017"
+output:
+  html_document:
+    theme: journal
+    toc: true
+    toc_depth: 2
+    fig_caption: true
+    fig_width: 6
+    fig_height: 4
+    code_folding: hide
+---
+
+#Final Assignment
+##Abstract  
+In this assignment, I will analyse how alcohol consumption and other phenomena affect school grades. For the analysis, I will use linear regression model and the MCA plot. According to the linear regression model, students studying more and students with no romantic relationships are more likely to have higher school grades. The MCA plot nicely validates the role of romantic relationships.
+
+##Research Questions
+Using the youth alcohol consumption data downloaded from the UCI Machine Learning Repository, I am going to study the variance of different variables using MCA and the effect of different variables to grades using linear regression.
+
+My hypothesis is that high amount of 'absences', no 'famsup', low 'studytime' and bad 'famrel' correlates with a higher alcohol consumption
+
+##Data Wrangling  
+The data wrangling are found [here] (https://github.com/obruck/IODS-project/blob/master/data/alc_data%20wrangling.R)
+
+The data files "mat" and "por" have been joined by using common variables as identifiers. Then, duplicate answers have been omitted. Three new variables have been created. "alc_use" is the total weekly alcohol consumption, "edu" stands for female and male education and "high_use" corresponds to students abusing high alcohol amounts.
+
+##Read and Explore the Data
+```{r warning = FALSE}
+setwd("/Users/obruck/Desktop/Open data course/IODS-project/data/")
+alc <- read.csv("alc.csv")
+colnames(alc)
+dim(alc)
+str(alc)
+```
+
+The data constitutes of 382 observations and 36 variables. They represent the correlation between alcohol usage and social, gender and study time attributes for each student.  
+  
+Data Set Information:  
+P. Cortez and A. Silva. Using Data Mining to Predict Secondary School Student Performance. In A. Brito and J. Teixeira Eds., Proceedings of 5th FUture BUsiness TEChnology Conference (FUBUTEC 2008) pp. 5-12, Porto, Portugal, April, 2008, EUROSIS, ISBN 978-9077381-39-7.
+
+Attribute Information:  
+1 school - student's school (binary: 'GP' - Gabriel Pereira or 'MS' - Mousinho da Silveira)  
+2 sex - student's sex (binary: 'F' - female or 'M' - male)  
+3 age - student's age (numeric: from 15 to 22)  
+4 address - student's home address type (binary: 'U' - urban or 'R' - rural)  
+5 famsize - family size (binary: 'LE3' - less or equal to 3 or 'GT3' - greater than 3)  
+6 Pstatus - parent's cohabitation status (binary: 'T' - living together or 'A' - apart)  
+7 Medu - mother's education (numeric: 0 - none, 1 - primary education (4th grade), 2 - 5th to 9th grade, 3 - secondary education or 4 - higher education)
+8 Fedu - father's education (numeric: 0 - none, 1 - primary education (4th grade), 2 - 5th to 9th grade, 3 - secondary education or 4 - higher education)
+9 Mjob - mother's job (nominal: 'teacher', 'health' care related, civil 'services' (e.g. administrative or police), 'at_home' or 'other')  
+10 Fjob - father's job (nominal: 'teacher', 'health' care related, civil 'services' (e.g. administrative or police), 'at_home' or 'other')  
+11 reason - reason to choose this school (nominal: close to 'home', school 'reputation', 'course' preference or 'other')  
+12 nursery - attended nursery school (binary: yes or no)  
+13 internet - Internet access at home (binary: yes or no)  
+14 guardian - student's guardian (nominal: 'mother', 'father' or 'other')  
+15 traveltime - home to school travel time (numeric: 1 - <15 min., 2 - 15 to 30 min., 3 - 30 min. to 1 hour, or 4 - >1 hour)  
+16 studytime - weekly study time (numeric: 1 - <2 hours, 2 - 2 to 5 hours, 3 - 5 to 10 hours, or 4 - >10 hours)  
+17 failures - number of past class failures (numeric: n if 1<=n<3, else 4)  
+18 schoolsup - extra educational support (binary: yes or no)  
+19 famsup - family educational support (binary: yes or no)  
+20 paid - extra paid classes within the course subject (Math or Portuguese) (binary: yes or no)  
+21 activities - extra-curricular activities (binary: yes or no)  
+22 higher - wants to take higher education (binary: yes or no)  
+23 romantic - with a romantic relationship (binary: yes or no)  
+24 famrel - quality of family relationships (numeric: from 1 - very bad to 5 - excellent)  
+25 freetime - free time after school (numeric: from 1 - very low to 5 - very high)  
+26 goout - going out with friends (numeric: from 1 - very low to 5 - very high)  
+27 Dalc - workday alcohol consumption (numeric: from 1 - very low to 5 - very high)  
+28 Walc - weekend alcohol consumption (numeric: from 1 - very low to 5 - very high)  
+29 health - current health status (numeric: from 1 - very bad to 5 - very good)  
+30 absences - number of school absences (numeric: from 0 to 93)  
+31 G1 - first period grade (numeric: from 0 to 20)  
+32 G2 - second period grade (numeric: from 0 to 20)  
+33 G3 - final grade (numeric: from 0 to 20, output target)  
+34 alc_use - average of 'Dalc' and 'Walc'  
+35 high_use - TRUE if 'alc_use' is higher than 2 and FALSE otherwise  
+  
+```{r message = FALSE}
+summary(alc)
+library(dplyr)
+library(corrplot)
+alc_num <- data.frame(alc$age, alc$Medu, alc$Fedu, alc$traveltime, alc$studytime, alc$failures, alc$famrel, alc$freetime, alc$goout, alc$Dalc, alc$Walc, alc$health, alc$absences, alc$G1, alc$G2, alc$G3, alc$alc_use)
+corrplot(cor(alc_num), method="circle", type="upper", cl.pos="b", tl.pos="d", tl.cex=0.6)
+```
+
+The data is composed of 198 females and 184 males. Normality of data is determined based on suffient n number (here n=382 is observed as sufficient) and on how close median and mean values are of each others. Variables "age", "Medu", "studytime", "failures", "famrel", "freetime", "goout", "Dalc", "Walc", "G1", "G2", "G3", "alc_use" are normally distributed. In addition, varibles "school", "sex", "address", "famsize", "Pstatus", "Mjob", "Fjob", "reason", "nursery", "internet", "guardian", "schoolsup", "famsup", "paid", "activities", "higher", "romantic", "high_use" are binomial or multinomial.
+
+As correlation plots can be done only with numeric variables, only these are encoded to the "alc_num" data.frame. Their correlation are then assessed with a correlation plot. The education level of mothers and fathers of student correlate positively. The same is seen between weekday and weekend alcohol consumption as well as the school grade of the first period, second period and the final grade. On the other hand, the number of past class failures correlate negatively with school grades.  
+The distribution of nominal variables are assessed next. As can be depicted, the number of males and females, the number of students with or without extracurricular activities and the number of students with or without extra paid classes within the course subject are roughly similar. However, more students live in urban areas, have a family size of >3 members, do not receive family educational support, do not consume high amounts of alcohol, want to take higher education, do not engage in romantic relationships, are in the Gabriel Pereira school and do not receive extra educational support.  
+
+```{r message = FALSE}
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(stringr)
+alc_nom <- data.frame(alc$school, alc$sex, alc$address, alc$famsize, alc$paid, alc$schoolsup, alc$famsup, alc$activities, alc$higher, alc$romantic, alc$high_use)
+gather(alc_nom) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") +  geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+```
+
+Then, we explore the impact of the education of mothers, fathers and their summed education to alcohol use and final grade. Parent education doesn't seem to affect alcohol grade but have a clear positive correlation with higher mean grades. 
+
+```{r echo = TRUE}
+alc %>% group_by(Medu) %>% summarise(count = n(), mean_alc_use = mean(alc_use))
+alc %>% group_by(Fedu) %>% summarise(count = n(), mean_alc_use = mean(alc_use))
+alc %>% group_by(edu) %>% summarise(count = n(), mean_alc_use = mean(alc_use))
+alc %>% group_by(Medu) %>% summarise(count = n(), mean_grade = mean(G3))
+alc %>% group_by(Fedu) %>% summarise(count = n(), mean_grade = mean(G3))
+alc %>% group_by(edu) %>% summarise(count = n(), mean_grade = mean(G3))
+```
+
+##Statistical Methods
+Linear regression is a statistical method to predict a continuous variable (dependent varaible) with one or multiple variables (independent variables). If only one explanatory variable is used, the model is called simple linear regression. Otherwise, the process is called multiple linear regression. Linear regression takes into account the multicollinearity of indenpendent models and computes their "true" correlation coefficient to the dependent variable. Eventually, one can make a formula
+y = b1x1 + ... + bnxn + C, where
+y = response variable (dependent variable),
+x = covariates,
+b = correlation coefficient of covariates,
+C = error term.
+
+Multiple correspondence analysis (MCA) is a visualisation method to analyse categorical data and the connections between different variables and their values. The data is transposed onto a two-dimensional plot where the x-axis and y-axis represent the components explaining the most of the variance of the data. Then, the values of the selected variable are distributed on the plot based on their correlation with the principal components and other variables. Unlike PCA or LDA, MCA compares the different types of values of different categorical variables and not the exact values of each observations.  
+
+##Results  
+###Linear Regression Analysis
+First let's run a linear regression analysis where the final grade is the response variable and  gender, tendency to go out with friends, the number of absences, alcohol consumption, family educational support, studytime and romantic relationships are the independent variables.  
+```{r echo = TRUE}
+alc$studytime <- factor(alc$studytime)
+m <- lm(G3 ~ sex + goout + absences + alc_use + famsup + studytime + romantic, data = alc)
+summary(m)
+OR <- coef(m) %>% exp
+CI <- confint(m) %>% exp
+cbind(OR, CI)
+```
+
+###MCA  
+Then, we shall analyze visually the final school grade, gender, romantic relationships and extracurricular activities using the MCA plot.  
+####Transform the G3 variable to categorical
+```{r echo = TRUE}
+attach(alc)
+alc$G3cat[G3 <= 10] <- "Low grade"
+alc$G3cat[G3 > 10 & G3 <= 14] <- "Intermediate grade"
+alc$G3cat[G3 > 14] <- "High grade"
+detach(alc) 
+str(alc)
+``` 
+
+####Run MCA
+```{r echo = TRUE}
+library(FactoMineR)
+alc_mca <- data.frame(alc$G3cat, alc$romantic, alc$high_use, alc$sex, alc$activities)
+mca <- MCA(alc_mca, graph = FALSE)
+summary(mca)
+plot(mca, invisible=c("ind"), habillage="quali")
+```
+
+
+##Conclusions and Discussion  
+According to the linear regression model, students studying more and students with no romantic relationships are more likely to have higher school grades. Interestingly, the optimal studytime is between 5-10 hours/week. The adjusted R-squared value is 0.055 so the model explains only 5.5% of the variance of school grades. This is partly due to the high amount of variables included in the model. Probably other variables have an impact on school grades as well but their effect is reduced due to multicollinearity.
+
+In the MCA plot, we can see that the two principal components (or dimensions) explain 21.1% and 18.8% of total variance. High school grade is located in the lower left quandrant (negative correlation with both principal components), intermediate grade near origo (little correlation) and low grades in the upper right quandrant (positive correlation with both principal components). Extracurricular activities ("alc.activies_yes"), low alcohol consumption ("FALSE") and lack of romantic relationships ("alc.romantic_no") correlate with higher school grades. On the other hand, gender ("M" and "F") have no effect. The exact numeric correlations with the principal components can be seen the summary of the MCA analysis.
+
+In this case, validating either method is quite challenging as there are no additional validation cohort. First, also studytime was included in the MCA plot, but the plot did not look aesthetic and therefore it was left out. On the other hand, the MCA plot nicely validates the results of the linear regression model emphasizing the negative role of romantic relationships to school grades. Luckily, life is more than school grades :)
